@@ -19,8 +19,8 @@ group_data = {
         {"name": "Kyle", "interests": ["pickleball", "nightlife", "asian food"]},
     ],
     "destination": "Northern Virginia",
-    "start_date": "2025-10-06",
-    "end_date": "2025-10-06",
+    "start_date": "2025-10-17",
+    "end_date": "2025-10-17",
     "budget": "moderate"
 }
 

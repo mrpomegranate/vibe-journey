@@ -188,7 +188,8 @@ def create_itinerary_crew(group_data: Dict) -> Crew:
     crew = Crew(
         agents=[event_researcher, local_expert, itinerary_planner],
         tasks=[event_search_task, research_task, planning_task],
-        process=Process.sequential
+        process=Process.sequential,
+        max_rpm=14
     )
 
     return crew

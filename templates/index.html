@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Journey | AI Planner</title>
+
+    <!-- 1. Load Tailwind & Marked -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- 2. Define App Logic BEFORE loading Alpine -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('travelApp', () => ({
+                destination: 'Fairfax, VA',
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: new Date().toISOString().split('T')[0],
+                startTime: '09:00',
+                endTime: '22:00',
+                budget: 'moderate',
+                people: [
+                    { name: 'User 1', interests: ['Food', 'Art'] }
+                ],
+                isLoading: false,
+                itinerary: null,
+                loadingMessage: 'Initializing agents...',
+                loadingMessages: [
+                    'Searching for local events...',
+                    'Checking museum hours...',
+                    'Finding top-rated restaurants...',
+                    'Balancing group interests...',
+                    'Finalizing schedule...'
+                ],
+
+                get isValid() {
+                    return this.destination && this.startDate && this.endDate && this.startTime && this.endTime && this.people.length > 0;
+                },
+
+                get parsedItinerary() {
+                    if (!this.itinerary) return '';
+                    // Safety check for marked library
+                    if (typeof marked !== 'undefined' && marked.parse) {
+                        return marked.parse(this.itinerary);
+                    }
+                    return this.itinerary;
+                },
+
+                addPerson() {
+                    this.people.push({ name: '', interests: [] });
+                },
+
+                removePerson(index) {
+                    if (this.people.length > 0) {
+                        this.people.splice(index, 1);
+                    }
+                },
+
+                addInterest(personIndex, event) {
+                    const val = event.target.value.trim();
+                    if (val) {
+                        this.people[personIndex].interests.push(val);
+                        event.target.value = '';
+                    }
+                },
+
+                removeInterest(personIndex, interestIndex) {
+                    this.people[personIndex].interests.splice(interestIndex, 1);
+                },
+
+                cycleLoadingMessages() {
+                    let i = 0;
+                    return setInterval(() => {
+                        this.loadingMessage = this.loadingMessages[i % this.loadingMessages.length];
+                        i++;
+                    }, 4000);
+                },
+
+                async generateItinerary() {
+                    if (!this.isValid) return;
+
+                    this.isLoading = true;
+                    this.itinerary = null;
+                    const msgInterval = this.cycleLoadingMessages();
+
+                    const payload = {
+                        destination: this.destination,
+                        start_date: this.startDate,
+                        end_date: this.endDate,
+                        start_time: this.startTime,
+                        end_time: this.endTime,
+                        budget: this.budget,
+                        people: this.people
+                    };
+
+                    try {
+                        const response = await fetch('/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const data = await response.json();
+
+                        if (data.status === 'success') {
+                            this.itinerary = data.itinerary;
+                        } else {
+                            alert('Error: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Network error. Please ensure the Flask server is running.');
+                        console.error(e);
+                    } finally {
+                        clearInterval(msgInterval);
+                        this.isLoading = false;
+                    }
+                }
+            }));
+        });
+    </script>
+
+    <!-- 3. Load Alpine LAST with defer -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* Typography refinements */
+        .markdown-body {
+            color: #334155;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .markdown-body h1 {
+            font-size: 2.25em;
+            font-weight: 800;
+            margin-bottom: 0.75em;
+            color: #1e3a8a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.3em;
+        }
+        .markdown-body h2 {
+            font-size: 1.75em;
+            font-weight: 700;
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+            color: #1e40af;
+        }
+        .markdown-body h3 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin-top: 1.25em;
+            margin-bottom: 0.5em;
+            color: #334155;
+        }
+        .markdown-body ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+            margin-bottom: 1em;
+        }
+        .markdown-body li {
+            margin-bottom: 0.5em;
+        }
+        .markdown-body p {
+            margin-bottom: 1em;
+            line-height: 1.7;
+        }
+        .markdown-body strong {
+            color: #0f172a;
+        }
+
+        /* Fix for LLM Indentation/Code Blocks */
+        .markdown-body pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            font-family: inherit;
+            font-size: 0.95em;
+        }
+
+        /* Scrollbar aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased" 
+      x-data="travelApp">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">✈️</span>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                    Vibe Journey
+                </h1>
+            </div>
+            <div class="text-sm text-slate-500">AI-Powered Group Travel</div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Input Form -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Destination & Dates Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <span>📍</span> Trip Details
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Destination</label>
+                            <input type="text" x-model="destination" placeholder="e.g. Northern Virginia, Tokyo" 
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">Start Date</label>
+                                <input type="date" x-model="startDate" 
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">End Date</label>
+                                <input type="date" x-model="endDate" 
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                        </div>
+
+                        <!-- NEW: Time Range Inputs -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">Start Time</label>
+                                <input type="time" x-model="startTime"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">End Time</label>
+                                <input type="time" x-model="endTime"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Budget</label>
+                            <select x-model="budget" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <option value="cheap">Budget / Cheap</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="luxury">Luxury</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group Management Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            <span>👥</span> The Group
+                        </h2>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                            <span x-text="people.length">1</span> Travelers
+                        </span>
+                    </div>
+
+                    <div class="space-y-4 mb-4">
+                        <template x-for="(person, index) in people" :key="index">
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 relative group transition-all hover:border-blue-200">
+                                <button type="button" @click="removePerson(index)" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100" title="Remove person">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+
+                                <div class="mb-2">
+                                    <input type="text" x-model="person.name" placeholder="Name (e.g. Kyle)" 
+                                        class="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none px-1 py-0.5 font-medium text-slate-800 placeholder-slate-400">
+                                </div>
+                                
+                                <div>
+                                    <div class="flex flex-wrap gap-1.5 mb-2">
+                                        <template x-for="(interest, iIndex) in person.interests" :key="iIndex">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 animate-fadeIn">
+                                                <span x-text="interest"></span>
+                                                <button type="button" @click="removeInterest(index, iIndex)" class="ml-1 text-indigo-400 hover:text-indigo-900 focus:outline-none">×</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                    <input type="text" 
+                                        placeholder="+ Add interest (Enter)" 
+                                        @keydown.enter.prevent="addInterest(index, $event)"
+                                        class="w-full text-xs bg-white border border-slate-200 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="people.length === 0" class="text-center py-4 text-slate-400 text-sm italic">
+                            No travelers added yet.
+                        </div>
+                    </div>
+
+                    <button type="button" @click="addPerson()" class="w-full py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-blue-500 hover:text-blue-600 transition text-sm font-medium flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        Add Traveler
+                    </button>
+                </div>
+
+                <!-- Action Button -->
+                <button type="button" @click="generateItinerary"
+                    :disabled="isLoading || !isValid"
+                    :class="{'opacity-50 cursor-not-allowed': isLoading || !isValid, 'hover:scale-[1.02] active:scale-[0.98]': !isLoading && isValid}"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 flex items-center justify-center gap-2">
+
+                    <template x-if="!isLoading">
+                        <span>🚀 Generate Itinerary</span>
+                    </template>
+
+                    <template x-if="isLoading">
+                        <span class="flex items-center gap-2">
+                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Planning...
+                        </span>
+                    </template>
+                </button>
+                
+                <p x-show="isLoading" x-cloak class="text-center text-xs text-slate-400 animate-pulse">
+                    This may take up to 60 seconds. <br>Our AI agents are calling venues.
+                </p>
+
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[600px] flex flex-col relative overflow-hidden">
+                    
+                    <!-- Empty State -->
+                    <div x-show="!itinerary && !isLoading" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+                        <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                            <span class="text-4xl grayscale">🗺️</span>
+                        </div>
+                        <h3 class="text-lg font-medium text-slate-600">Ready to plan?</h3>
+                        <p class="text-center max-w-sm mt-2">Add your destination, dates, and group details on the left, then hit Generate to see the magic.</p>
+                    </div>
+
+                    <!-- Loading State Overlay -->
+                    <div x-show="isLoading" x-cloak class="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center">
+                        <div class="relative w-20 h-20 mb-4">
+                            <div class="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                            <div class="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800">Building Itinerary</h3>
+                        <div class="mt-2 text-slate-500 text-sm" x-text="loadingMessage"></div>
+                    </div>
+
+                    <!-- Content State -->
+                    <div x-show="itinerary" x-cloak class="flex-1 p-8 overflow-y-auto">
+                        <div class="prose prose-slate max-w-none markdown-body" x-html="parsedItinerary"></div>
+                    </div>
+                    
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+</html>

@@ -19,8 +19,8 @@ group_data = {
         {"name": "Kyle", "interests": ["pickleball", "nightlife", "asian food"]},
     ],
     "destination": "Northern Virginia",
-    "start_date": "2025-10-06",
-    "end_date": "2025-10-06",
+    "start_date": "2025-10-17",
+    "end_date": "2025-10-17",
     "budget": "moderate"
 }
 
@@ -188,7 +188,8 @@ def create_itinerary_crew(group_data: Dict) -> Crew:
     crew = Crew(
         agents=[event_researcher, local_expert, itinerary_planner],
         tasks=[event_search_task, research_task, planning_task],
-        process=Process.sequential
+        process=Process.sequential,
+        max_rpm=14
     )
 
     return crew

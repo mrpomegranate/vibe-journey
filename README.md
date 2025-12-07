@@ -70,7 +70,9 @@ GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 SERPER_API_KEY="YOUR_SERPER_API_KEY"
 
 ## 🧠 How It Works (Core Logic Summary)
-![User input](images\Inputs_vibe_journey.png "User Input")
+![User input](images/Inputs_vibe_journey.png "User Input")
+![Result from Unified Agent](images/unified_agent_task_vibe_journey_result.png "Unified Agent Unified Task (SAUT)")
+![Result from Multi Agent Multi Tasks](images/multi_agent_multi_task_vibe_journey_result.png "Multi Agent Multi Task (MAMT)")
 
 ## 🖥️ Running the Application
 

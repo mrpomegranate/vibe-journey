@@ -129,7 +129,7 @@ def generate_itinerary(group_data: Dict) -> str:
         goal="Create a balanced, day by day feasible itinerary with specific times",
         backstory = """You are a master plann who creates realisitic, well-paced itineraries with specific times.
         You consider travel time, opening time, rush hour, event schedules, and group energy levels to build
-        perfect schedule. You always provide two distinct iteneraries that are different from each other in terms of restaurants, shows (comedy, theater), and festivals""",
+        perfect schedule.""",
         verbose=True,
         allow_delegation=False,
         llm=llm

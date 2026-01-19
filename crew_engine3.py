@@ -10,7 +10,7 @@ load_dotenv()
 
 def get_llm():
     """Factory to get the LLM instance to ensure fresh connections."""
-    return LLM(model="gemini/gemini-2.0-flash", temperature=0)
+    return LLM(model="gemini/gemini-2.5-flash", temperature=0)
 
 def calculate_trip_duration(start_date: str, end_date: str):
     start = datetime.strptime(start_date, "%Y-%m-%d")
@@ -129,7 +129,7 @@ def generate_itinerary(group_data: Dict) -> str:
         agents=[unified_agent],
         tasks=[unified_task],
         process=Process.sequential,
-        max_rpm=10
+        max_rpm=2
     )
 
     result = crew.kickoff()
